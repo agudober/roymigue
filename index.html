@@ -4,9 +4,9 @@
 <title>Nuestro cuaderno de viaje</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#fff4f8;--card:#fff;--ink:#3d2a33;--mute:#8d7380;--acc:#d9648e;--line:#fadbe6;--sea:#fdeaf2;--land:#f7b6cd;--sh:0 6px 24px rgba(217,100,142,.14);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#25151b;--card:#321e26;--ink:#fde9f0;--mute:#cba5b4;--acc:#f28db1;--line:#4b2f3a;--sea:#2d1a22;--land:#5e3548;--sh:0 6px 24px rgba(0,0,0,.4)}}
-:root[data-theme="dark"]{--bg:#25151b;--card:#321e26;--ink:#fde9f0;--mute:#cba5b4;--acc:#f28db1;--line:#4b2f3a;--sea:#2d1a22;--land:#5e3548;--sh:0 6px 24px rgba(0,0,0,.4)}
+:root{--bg:#fff4f8;--card:#fff;--ink:#3d2a33;--mute:#8d7380;--acc:#d9648e;--line:#fadbe6;--sh:0 6px 24px rgba(217,100,142,.14);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#25151b;--card:#321e26;--ink:#fde9f0;--mute:#cba5b4;--acc:#f28db1;--line:#4b2f3a;--sh:0 6px 24px rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{--bg:#25151b;--card:#321e26;--ink:#fde9f0;--mute:#cba5b4;--acc:#f28db1;--line:#4b2f3a;--sh:0 6px 24px rgba(0,0,0,.4)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,sans-serif}
 .wrap{max-width:760px;margin:0 auto;padding:0 18px 80px}
@@ -17,6 +17,9 @@ h1{font:italic 500 clamp(30px,7vw,46px)/1.15 "Playfair Display",Georgia,serif;ma
 header p{color:var(--mute);margin:0}
 button{font:inherit;cursor:pointer;border:0;border-radius:999px;padding:10px 20px;background:var(--acc);color:#fff;font-weight:500}
 button.g{background:transparent;color:var(--mute);padding:6px 10px;font-size:14px}button:disabled{opacity:.5}
+#ex{position:absolute;right:10px;top:calc(10px + env(safe-area-inset-top,0px));padding:8px 13px}
+.hint{position:absolute;left:12px;bottom:8px;font-size:12px;color:var(--mute);pointer-events:none}
+.pin{cursor:pointer}
 .bar{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap}.bar input{flex:1 1 180px}
 input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 textarea{min-height:100px;resize:vertical}
@@ -194,7 +197,7 @@ h1{color:var(--acc)}.cd{position:relative}
 <div id="lb"><b id="lx" style="right:6px;top:calc(6px + env(safe-area-inset-top,0px))">✕</b><b id="lp" style="left:2px">‹</b><b id="ln" style="right:2px">›</b><div id="lc"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// CONFIGURACIÓN: credenciales públicas de Supabase. Google Drive se conecta mediante la Edge Function segura.
+// CONFIGURACIÓN: sustituye estos dos valores por los de Supabase > Project Settings > API.
 const SUPABASE_URL = "https://qcqkefljwpgpuszxcrcm.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_gWoDcSRW3cAHAt9NbKnAjA_21HFGuq9";
 
@@ -202,14 +205,13 @@ const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>
 const fmt=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("es-ES",{day:"numeric",month:"long",year:"numeric"})}catch(e){return d}};
 let sb=null,session=null,me=null,ED=false,items=[],names={},E={},CUR=null,VIS=[],LB={l:[],i:0},tx=0,channel=null,tt,reactions=[],FEATURED_ORDER=[];
 const BUCKET="memory-media";
-const DRIVE_FUNCTION_URL = "https://qcqkefljwpgpuszxcrcm.supabase.co/functions/v1/drive-storage";
 const EMO=["❤️","😍","😂","🥹"];
 const VISITOR_ID=(()=>{try{let v=localStorage.getItem("cuaderno_visitor_id");if(!v){v=crypto.randomUUID();localStorage.setItem("cuaderno_visitor_id",v)}return v}catch(e){return crypto.randomUUID()}})();
 
 function toast(t){const e=$("#ts");e.textContent=t;e.style.display="block";clearTimeout(tt);tt=setTimeout(()=>e.style.display="none",4500)}
 const open_=u=>window.open(u,"_blank","noopener");
 function configReady(){return SUPABASE_URL.startsWith("https://")&&SUPABASE_ANON_KEY.length>20&&!SUPABASE_URL.includes("PEGA_AQUI")&&!SUPABASE_ANON_KEY.includes("PEGA_AQUI")}
-function mediaUrl(m){if(!m)return "";if(m.url)return m.url;if(m.path)return sb.storage.from(BUCKET).getPublicUrl(m.path).data.publicUrl;return ""}
+function mediaUrl(m){if(!m)return "";if(m.url)return m.url;if(m.driveId)return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m.driveId)}`;return m.path?sb.storage.from(BUCKET).getPublicUrl(m.path).data.publicUrl:""}
 function cov(i){const m=(i.media||[])[0];return m?(m.t==="v"?`<video src="${esc(mediaUrl(m))}#t=0.1" preload="metadata" muted playsinline></video>`:`<img loading="lazy" src="${esc(mediaUrl(m))}" alt="">`):`<div class="nc">📍</div>`}
 function spUrl(s){s=(s||"").trim();const m=s.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|album|playlist|episode|artist)\/([A-Za-z0-9]+)/)||s.match(/^spotify:(track|album|playlist|episode|artist):([A-Za-z0-9]+)/);return m?`https://open.spotify.com/${m[1]}/${m[2]}`:""}
 function sp(i){if(!i.song)return "";let h=0;for(const c of i.song.split("/").pop())h=(h*31+c.charCodeAt(0))>>>0;const b=[];for(let k=0;k<23;k++){h=(h*1103515245+12345)>>>0;b.push(4+(h>>>16)%22)}let qr="";try{if(window.qrcode){const q=qrcode(0,"M");q.addData(i.song);q.make();qr=q.createSvgTag({cellSize:3,margin:0,scalable:true})}}catch(e){}return `<a class="sp" href="${esc(i.song)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="30" height="30" style="flex:none"><circle cx="12" cy="12" r="12" fill="#1ed760"/><path d="M5.5 9c4.5-1.3 9-1 13 1.2M6.3 12.6c3.7-1 7.2-.7 10.4 1M7.2 16c3-.8 5.7-.5 8.2.8" stroke="#000" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg><span class="nm"><b>${esc(i.song_name||"Escuchar en Spotify")}</b><small>Abrir en Spotify</small></span><svg class="bars" viewBox="0 0 92 32" width="92" height="32">${b.map((v,k)=>`<rect x="${k*4}" y="${16-v/2}" width="2.6" height="${v}" rx="1.3" fill="#fff"/>`).join("")}</svg><span class="qr">${qr}</span></a>`}
@@ -311,7 +313,7 @@ $("#rl").onclick=e=>{const c=e.target.closest("[data-rid]");if(c){CUR=c.dataset.
 $("#mc").onclick=closeM;$("#mv").onclick=e=>{if(e.target.id==="mv")closeM()};
 addEventListener("keydown",e=>{if(!CUR||$("#lb").classList.contains("on"))return;const k=VIS.findIndex(x=>x.id===CUR),n=e.key==="ArrowDown"?VIS[k+1]:e.key==="ArrowUp"?VIS[k-1]:null;if(n){e.preventDefault();CUR=n.id;fillM();mark()}if(e.key==="Escape")closeM()});
 $("#mm").onclick=async e=>{const t=e.target.closest("[data-react]");if(t){const id=t.dataset.id,emoji=t.dataset.react;try{const {error}=await sb.from("memory_reactions").upsert({memory_id:id,visitor_id:VISITOR_ID,emoji},{onConflict:"memory_id,visitor_id"});if(error)throw error;await loadReactions();if(CUR===id)fillM(1)}catch(x){toast("No se pudo guardar la reacción. Comprueba que has ejecutado el SQL actualizado.")}return}const target=e.target;if(target.dataset.dots){menu(target.dataset.dots,target);return}if(target.dataset.m){const it=items.find(x=>x.id===target.dataset.m);if(it)lb(it.media,+target.dataset.i)}};
-$("#mn").onclick=async e=>{const b=e.target.closest("[data-act]");if(!b)return;$("#mn").classList.remove("on");const it=items.find(x=>x.id===b.dataset.id),a=b.dataset.act;if(!it)return;if(a==="edit"){closeM();edit(it)}else if(a==="feature"){if(!ED)return;try{const next=!it.is_featured;const {error}=await sb.from("memories").update({is_featured:next}).eq("id",it.id);if(error)throw error;toast(next?"Recuerdo añadido a destacados.":"Recuerdo quitado de destacados.");await loadMemories()}catch(x){toast("No se pudo actualizar el destacado: "+(x.message||"comprueba el SQL y los permisos"))}}else if(a==="spo")open_(it.song);else if(a==="del"&&await ask("¿Eliminar este recuerdo? No se puede deshacer.")){try{const {error}=await sb.from("memories").delete().eq("id",it.id);if(error)throw error;await removeStorage((it.media||[]).map(m=>m.driveId||(m.path?"legacy:"+m.path:null)).filter(Boolean));if(CUR===it.id)closeM();toast("Recuerdo eliminado.")}catch(x){toast("No se pudo eliminar: "+(x.message||"comprueba los permisos"))}}};
+$("#mn").onclick=async e=>{const b=e.target.closest("[data-act]");if(!b)return;$("#mn").classList.remove("on");const it=items.find(x=>x.id===b.dataset.id),a=b.dataset.act;if(!it)return;if(a==="edit"){closeM();edit(it)}else if(a==="feature"){if(!ED)return;try{const next=!it.is_featured;const {error}=await sb.from("memories").update({is_featured:next}).eq("id",it.id);if(error)throw error;toast(next?"Recuerdo añadido a destacados.":"Recuerdo quitado de destacados.");await loadMemories()}catch(x){toast("No se pudo actualizar el destacado: "+(x.message||"comprueba el SQL y los permisos"))}}else if(a==="spo")open_(it.song);else if(a==="del"&&await ask("¿Eliminar este recuerdo? No se puede deshacer.")){try{const {error}=await sb.from("memories").delete().eq("id",it.id);if(error)throw error;const paths=(it.media||[]).map(m=>m.path).filter(Boolean);const driveIds=(it.media||[]).map(m=>m.driveId).filter(Boolean);if(paths.length)await removeStorage(paths);if(driveIds.length)await removeDriveFiles(driveIds);if(CUR===it.id)closeM();toast("Recuerdo eliminado.")}catch(x){toast("No se pudo eliminar: "+(x.message||"comprueba los permisos"))}}};
 function ask(q){return new Promise(r=>{$("#cq").textContent=q;$("#cf").classList.add("on");const f=v=>{$("#cf").classList.remove("on");r(v)};$("#cy").onclick=()=>f(true);$("#cn").onclick=()=>f(false)})}
 addEventListener("click",e=>{if(!e.target.closest("[data-dots],#mn"))$("#mn").classList.remove("on")});addEventListener("scroll",()=>$("#mn").classList.remove("on"),true);
 
@@ -322,30 +324,37 @@ const step=d=>{LB.i=(LB.i+d+LB.l.length)%LB.l.length;show()};$("#lp").onclick=()
 
 // Crear / editar recuerdos
 function openForm(){$("#f").classList.add("open");$("#t").focus()}
-$("#add").onclick=()=>{if(!ED){toast("Esta cuenta no tiene permiso para editar.");return}E={id:null,media:[],fresh:[],removed:[]};$("#f").reset();$("#d").value=new Date().toISOString().slice(0,10);pv();openForm()};
-function edit(i){if(!ED)return;E={id:i.id,media:[...(i.media||[])],fresh:[],removed:[]};$("#t").value=i.title||"";$("#d").value=i.date||"";$("#p").value=i.place||"";$("#v").value=i.trip||"";$("#x").value=i.text||"";$("#sg").value=i.song||"";$("#sn").value=i.song_name||"";pv();openForm();$("#f").scrollIntoView({behavior:"smooth"})}
+$("#add").onclick=()=>{if(!ED){toast("Esta cuenta no tiene permiso para editar.");return}E={id:null,media:[],fresh:[],freshDrive:[],removed:[],removedDrive:[]};$("#f").reset();$("#d").value=new Date().toISOString().slice(0,10);pv();openForm()};
+function edit(i){if(!ED)return;E={id:i.id,media:[...(i.media||[])],fresh:[],freshDrive:[],removed:[],removedDrive:[]};$("#t").value=i.title||"";$("#d").value=i.date||"";$("#p").value=i.place||"";$("#v").value=i.trip||"";$("#x").value=i.text||"";$("#sg").value=i.song||"";$("#sn").value=i.song_name||"";pv();openForm();$("#f").scrollIntoView({behavior:"smooth"})}
 function pv(){$("#pv").innerHTML=E.media.map((m,k)=>`<div class="th">${m.t==="v"?`<video src="${esc(mediaUrl(m))}#t=0.1" muted playsinline preload="metadata"></video>`:`<img src="${esc(mediaUrl(m))}" alt="">`}<div class="ctl"><b data-mv="${k}" data-d="-1">◀</b><b data-rm="${k}">✕</b><b data-mv="${k}" data-d="1">▶</b></div></div>`).join("")}
-$("#pv").onclick=e=>{const t=e.target;if(t.dataset.mv!==undefined){const k=+t.dataset.mv,j=k+ +t.dataset.d;if(j>=0&&j<E.media.length){[E.media[k],E.media[j]]=[E.media[j],E.media[k]];pv()}}if(t.dataset.rm!==undefined){const m=E.media.splice(+t.dataset.rm,1)[0];if(m.driveId)E.removed.push(m.driveId);else if(m.path)E.removed.push("legacy:"+m.path);pv()}};
+$("#pv").onclick=e=>{const t=e.target;if(t.dataset.mv!==undefined){const k=+t.dataset.mv,j=k+ +t.dataset.d;if(j>=0&&j<E.media.length){[E.media[k],E.media[j]]=[E.media[j],E.media[k]];pv()}}if(t.dataset.rm!==undefined){const m=E.media.splice(+t.dataset.rm,1)[0];if(m.path)E.removed.push(m.path);if(m.driveId)E.removedDrive.push(m.driveId);pv()}};
 function shrink(f){return new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);c.toBlob(b=>b?ok(b):no(new Error("No se pudo procesar la imagen.")),"image/jpeg",.85)};im.onerror=()=>no(new Error("No se pudo leer la imagen."));im.src=URL.createObjectURL(f)})}
-async function driveRequest(payload){
-  if(!session?.access_token)throw new Error("Inicia sesión como editor.");
-  const response=await fetch(DRIVE_FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":SUPABASE_ANON_KEY},body:JSON.stringify(payload)});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||data.error)throw new Error(data.error||"No se pudo conectar con Google Drive.");
-  return data;
+let driveTokenCache=null,driveTokenExpiry=0;
+async function getDriveAccessToken(){
+  if(driveTokenCache&&Date.now()<driveTokenExpiry)return driveTokenCache;
+  const {data:{session:current}}=await sb.auth.getSession();
+  if(!current?.access_token)throw new Error("Tu sesión ha caducado. Vuelve a iniciar sesión.");
+  const r=await fetch(`${SUPABASE_URL}/functions/v1/drive-storage?action=access-token`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${current.access_token}`},body:"{}"});
+  const j=await r.json();if(!r.ok||!j.access_token)throw new Error(j.error||"No se pudo obtener acceso a Google Drive.");
+  driveTokenCache=j.access_token;driveTokenExpiry=Date.now()+Math.max(60,(j.expires_in||3600)-120)*1000;return driveTokenCache;
 }
-async function removeStorage(ids){
-  const unique=[...new Set(ids.filter(Boolean))];
-  for(const id of unique){
-    try{
-      if(id.startsWith("legacy:")){const path=id.slice(7);await sb.storage.from(BUCKET).remove([path]);}
-      else await driveRequest({action:"delete",fileId:id});
-    }catch(e){console.warn("No se pudo borrar un archivo:",e)}
-  }
+async function uploadDriveFile(file){
+  const token=await getDriveAccessToken(),mime=file.type||"application/octet-stream";
+  const metadata={name:`${Date.now()}_${file.name}`,mimeType:mime};
+  const start=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,mimeType",{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json; charset=UTF-8","X-Upload-Content-Type":mime,"X-Upload-Content-Length":String(file.size)},body:JSON.stringify(metadata)});
+  if(!start.ok)throw new Error("Google Drive no pudo iniciar la subida: "+await start.text());
+  const uploadUrl=start.headers.get("Location");if(!uploadUrl)throw new Error("Google Drive no devolvió la dirección de subida.");
+  const uploaded=await fetch(uploadUrl,{method:"PUT",headers:{"Content-Type":mime},body:file});
+  const result=await uploaded.json().catch(()=>({}));if(!uploaded.ok||!result.id)throw new Error(result.error?.message||"No se pudo subir el archivo a Google Drive.");
+  const perm=await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(result.id)}/permissions`,{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({type:"anyone",role:"reader"})});
+  if(!perm.ok){await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(result.id)}`,{method:"DELETE",headers:{Authorization:`Bearer ${token}`}});throw new Error("El archivo se subió, pero no se pudo habilitar su visualización pública: "+await perm.text());}
+  return {driveId:result.id,t:mime.startsWith("video/")?"v":"i",name:result.name,mimeType:mime};
 }
-$("#i").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!ED||!session){$("#fm").textContent="Inicia sesión con una cuenta autorizada para subir archivos.";return}$("#sv").disabled=true;let k=0;for(const f of fs){k++;$("#fm").textContent=`Preparando ${k} de ${fs.length}…`;const v=f.type.startsWith("video/");try{if(v&&f.size>50*1048576)throw new Error("El vídeo supera los 50 MB.");let file=v?f:await shrink(f);const ext=v?(f.name.split(".").pop().toLowerCase()||"mp4"):"jpg";const name=`recuerdo-${crypto.randomUUID()}.${ext}`;const init=await driveRequest({action:"initiate",name,mimeType:file.type||f.type,size:file.size});const uploaded=await fetch(init.uploadUrl,{method:"PUT",headers:{"Content-Type":file.type||f.type},body:file});if(!uploaded.ok)throw new Error("Google Drive no pudo recibir el archivo ("+uploaded.status+").");const result=await uploaded.json();if(!result.id)throw new Error("Google Drive no devolvió el identificador del archivo.");const done=await driveRequest({action:"complete",fileId:result.id,isVideo:v});const item={driveId:done.id,url:done.url,t:v?"v":"i"};E.media.push(item);E.fresh.push(done.id);pv()}catch(x){$("#fm").textContent="Error con "+f.name+": "+(x.message||"no se pudo subir");$("#sv").disabled=false;return}}$("#fm").textContent="Archivos subidos a Google Drive. Guarda el recuerdo para terminar.";$("#sv").disabled=false};
-$("#cx").onclick=async()=>{try{await removeStorage(E.fresh)}catch(e){}$("#f").classList.remove("open");$("#fm").textContent=""};
-$("#f").onsubmit=async e=>{e.preventDefault();if(!ED||!me){$("#fm").textContent="No tienes permisos para guardar recuerdos.";return}$("#sv").disabled=true;try{const sg=spUrl($("#sg").value);if($("#sg").value.trim()&&!sg)throw new Error("El enlace de Spotify no es válido.");const d={title:$("#t").value.trim(),date:$("#d").value,place:$("#p").value.trim(),trip:$("#v").value.trim(),song:sg,song_name:$("#sn").value.trim(),text:$("#x").value.trim(),media:E.media};let result;if(E.id)result=await sb.from("memories").update(d).eq("id",E.id);else result=await sb.from("memories").insert({...d,author:me});if(result.error)throw result.error;await removeStorage(E.removed);E.fresh=[];$("#f").classList.remove("open");$("#fm").textContent="";toast("Recuerdo guardado.");await loadMemories()}catch(x){$("#fm").textContent="No se pudo guardar: "+(x.message||"error")}$("#sv").disabled=false};
+async function removeStorage(paths){const p=[...new Set(paths.filter(Boolean))];if(!p.length)return;const {error}=await sb.storage.from(BUCKET).remove(p);if(error)console.warn("No se pudieron borrar algunos archivos",error)}
+async function removeDriveFiles(ids){const unique=[...new Set(ids.filter(Boolean))];if(!unique.length)return;const token=await getDriveAccessToken();for(const id of unique){const r=await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}`,{method:"DELETE",headers:{Authorization:`Bearer ${token}`}});if(!r.ok&&r.status!==404)console.warn("No se pudo borrar el archivo de Drive",id,await r.text())}}
+$("#i").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!ED||!session){$("#fm").textContent="Inicia sesión con una cuenta autorizada para subir archivos.";return}$("#sv").disabled=true;let k=0;for(const f of fs){k++;$("#fm").textContent=`Subiendo ${k} de ${fs.length} a Google Drive…`;const v=f.type.startsWith("video/");try{const file=v?f:await shrink(f);const item=await uploadDriveFile(file);E.media.push(item);E.freshDrive.push(item.driveId);pv()}catch(x){$("#fm").textContent="Error con "+f.name+": "+(x.message||"no se pudo subir");$("#sv").disabled=false;return}}$("#fm").textContent="Archivos subidos a Google Drive. Guarda el recuerdo para confirmar los cambios.";$("#sv").disabled=false};
+$("#cx").onclick=async()=>{try{await removeStorage(E.fresh);await removeDriveFiles(E.freshDrive)}catch(e){console.warn(e)}$("#f").classList.remove("open");$("#fm").textContent=""};
+$("#f").onsubmit=async e=>{e.preventDefault();if(!ED||!me){$("#fm").textContent="No tienes permisos para guardar recuerdos.";return}$("#sv").disabled=true;try{const sg=spUrl($("#sg").value);if($("#sg").value.trim()&&!sg)throw new Error("El enlace de Spotify no es válido.");const d={title:$("#t").value.trim(),date:$("#d").value,place:$("#p").value.trim(),trip:$("#v").value.trim(),song:sg,song_name:$("#sn").value.trim(),text:$("#x").value.trim(),media:E.media};let result;if(E.id)result=await sb.from("memories").update(d).eq("id",E.id);else result=await sb.from("memories").insert({...d,author:me});if(result.error)throw result.error;await removeStorage(E.removed);await removeDriveFiles(E.removedDrive);E.fresh=[];E.freshDrive=[];$("#f").classList.remove("open");$("#fm").textContent="";toast("Recuerdo guardado.");await loadMemories()}catch(x){$("#fm").textContent="No se pudo guardar: "+(x.message||"error")}$("#sv").disabled=false};
 
 init();
 </script></body></html>
